@@ -1,0 +1,4 @@
+bin/
+mandelbrot.*
+obj/
+data.txt
