@@ -31,14 +31,14 @@ double dx = xMax-xMin, dy = yMax-yMin;
 
 double scaleFactor = 2.0;
 
-GLfloat mx, my;
+double mx, my;
 
 
 void init();
 void display();
 void mandelbrot(vec2 positions[], GLfloat colors[]);
 void scale(vec2 positions[]);
-void unScale(float & mx, float & my);
+void unScale(double & mx, double & my);
 void mouseCallback(int button, int state, int x, int y);
 void redisplay();
 
@@ -118,7 +118,7 @@ void init(){
 
 void display(){
     glClear(GL_COLOR_BUFFER_BIT);
-    glPointSize(10);
+    glPointSize(1);
     glDrawArrays(GL_POINTS, 0, numPoints);
     glFlush();
 }
@@ -146,7 +146,7 @@ void mandelbrot(vec2 positions[], GLfloat colors[]){
 
                 iterations++;
             }
-            myfile << " Count:"<< count << " X:" << x << " Y:" << y << " iterations:" << iterations << endl;
+            myfile << " Count:"<< count << " X:" << positions[count].x << " Y:" << positions[count].y << " iterations:" << iterations << endl;
 
             colors[count] = (iterations == testCuttoff)?0.0:iterations/100.0;
 
@@ -165,19 +165,19 @@ void scale(vec2 positions[]){
     }
 }
 
-void unScale(float & mx, float & my){
+void unScale(double & mx, double & my){
     mx = xMin + dx * ((mx-(-1.0))/(2.0));
     my = yMin + dy * ((my-(-1.0))/(2.0));
 }
 
 
 void mouseCallback(int button, int state, int x, int y){
-    mx = (float) x / (width / 2) - 1.0;
-    my = (float) (height - y) / (height / 2) - 1.0;
+    mx = (double) x / (width / 2) - 1.0;
+    my = (double) (height - y) / (height / 2) - 1.0;
 
 
     if((button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) &&  state == GLUT_DOWN){
-        float mscalex = mx, mscaley = my;
+        double mscalex = mx, mscaley = my;
         cout << " mscaley: " << mscaley << " mscalex: " << mscalex << endl;
 
         unScale(mscalex, mscaley);
@@ -202,6 +202,10 @@ void mouseCallback(int button, int state, int x, int y){
         yMax = mscaley+(dy/2.0)*thisScale;
         yMin = mscaley-(dy/2.0)*thisScale;
         dy = yMax-yMin;
+
+        if(zoom>=0){
+            printf("wtf man");
+        }
 
         testCuttoff = 100 + 100*zoom;
         if(testCuttoff <= 0) testCuttoff = 100;
