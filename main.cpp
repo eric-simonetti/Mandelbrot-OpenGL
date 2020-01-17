@@ -145,7 +145,7 @@ void mandelbrot(vec2 positions[], GLfloat colors[]){
             }
             //myfile << " Count:"<< count << " X:" << positions[count].x << " Y:" << positions[count].y << " iterations:" << iterations << endl;
 
-            colors[count] = (iterations == testCutoff)?0.0:iterations/100.0;
+            colors[count] = (iterations == testCutoff)?0.0:iterations/(double)testCutoff;
 
             y-=yStep;
             count++;
