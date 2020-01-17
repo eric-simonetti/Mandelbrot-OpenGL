@@ -15,8 +15,9 @@
 
 using namespace std;
 
+int scaleFactor = 4;
 int baseIterations = 100;
-int iterationInc = 100;
+int iterationInc = 50*scaleFactor;
 
 int zoom = 0;
 int testCutoff = baseIterations;
@@ -25,25 +26,24 @@ int width = 750, height = 750;
 int numPoints = width*height;
 int topBarHeight = 20;
 
-//long double xMax = -.6, xMin = -.9;
-//long double yMax = .25, yMin = 0;
+//__float128 xMax = -.6, xMin = -.9;
+//__float128 yMax = .25, yMin = 0;
 
-long double xMax = 1.0, xMin = -2.0;
-long double yMax = 1.5, yMin = -1.5;
-long double dx = xMax-xMin, dy = yMax-yMin;
+__float128 xMax = 1.0, xMin = -2.0;
+__float128 yMax = 1.5, yMin = -1.5;
+__float128 dx = xMax-xMin, dy = yMax-yMin;
 
-long double scaleFactor = 4.0;
-
-long double mx, my;
+float mx, my;
 
 
 void init();
 void display();
 void mandelbrot(vec2 positions[], GLfloat colors[]);
 void scale(vec2 positions[]);
-void unScale(long double & mx, long double & my);
+void unScale(__float128 & mx, __float128 & my);
 void mouseCallback(int button, int state, int x, int y);
 void redisplay();
+void mandelbrotQuad(vec2 positions[], GLfloat colors[]);
 
 int main(int argc, char* argv[])
 {
@@ -121,8 +121,8 @@ void display(){
 }
 
 void mandelbrot(vec2 positions[], GLfloat colors[]){
-    ofstream myfile;
-    myfile.open("data.txt");
+    //ofstream myfile;
+    //myfile.open("data.txt");
     long double x = xMax, y = yMax;
     long double xStep = dx/width, yStep = dy/height;
     int count = 0;
@@ -143,7 +143,7 @@ void mandelbrot(vec2 positions[], GLfloat colors[]){
 
                 iterations++;
             }
-            myfile << " Count:"<< count << " X:" << positions[count].x << " Y:" << positions[count].y << " iterations:" << iterations << endl;
+            //myfile << " Count:"<< count << " X:" << positions[count].x << " Y:" << positions[count].y << " iterations:" << iterations << endl;
 
             colors[count] = (iterations == testCutoff)?0.0:iterations/100.0;
 
@@ -156,35 +156,32 @@ void mandelbrot(vec2 positions[], GLfloat colors[]){
 }
 
 void scale(vec2 positions[]){
-    ofstream myfile;
-    myfile.open("data2.txt");
     for(int i = 0; i < numPoints; i++){
         positions[i].x = -1.0+(2.0)*((positions[i].x-xMin)/dx);
         positions[i].y = -1.0+(2.0)*((positions[i].y-yMin)/dy);
-        myfile << " Count:"<< i << " X:" << positions[i].x << " Y:" << positions[i].y << endl;
     }
 }
 
-void unScale(long double & mx, long double & my){
+void unScale(__float128 & mx, __float128 & my){
     mx = xMin + dx * ((mx-(-1.0))/(2.0));
     my = yMin + dy * ((my-(-1.0))/(2.0));
 }
 
 
 void mouseCallback(int button, int state, int x, int y){
-    mx = (long double) x / (width / 2) - 1.0;
-    my = (long double) (height - y) / (height / 2) - 1.0;
+    mx = (__float128) x / (width / 2) - 1.0;
+    my = (__float128) (height - y) / (height / 2) - 1.0;
 
 
     if((button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) &&  state == GLUT_DOWN){
-        long double mscalex = mx, mscaley = my;
-        cout << " mscaley: " << mscaley << " mscalex: " << mscalex << endl;
+        __float128 mscalex = mx, mscaley = my;
+//        cout << " mscaley: " << mscaley << " mscalex: " << mscalex << endl;
 
         unScale(mscalex, mscaley);
 
-        cout << " mscaley: " << mscaley << " mscalex: " << mscalex << endl;
+//        cout << " mscaley: " << mscaley << " mscalex: " << mscalex << endl;
 
-        long double thisScale = scaleFactor;
+        __float128 thisScale = scaleFactor;
         if(button == GLUT_LEFT_BUTTON){
             printf("left click\n");
             thisScale = 1.0/scaleFactor;
@@ -206,7 +203,7 @@ void mouseCallback(int button, int state, int x, int y){
         testCutoff = baseIterations + iterationInc*zoom;
         if(testCutoff <= 0) testCutoff = baseIterations;
 
-        cout << " xMin: " << xMin << " xMax: " << xMax << " yMax: " << yMax << " yMin: " << yMin << " cutoff: " << testCutoff << endl;
+//        cout << " xMin: " << xMin << " xMax: " << xMax << " yMax: " << yMax << " yMin: " << yMin << " cutoff: " << testCutoff << endl;
 
         redisplay();
     }
@@ -215,11 +212,53 @@ void mouseCallback(int button, int state, int x, int y){
 void redisplay(){
     vec2 rawPosData[numPoints];
     GLfloat colorData[numPoints];
-    mandelbrot(rawPosData, colorData);
+
+    cout << zoom << endl;
+
+    if(zoom>=29) {
+        cout << "running quad" << endl;
+        mandelbrotQuad(rawPosData, colorData);
+    }
+    else mandelbrot(rawPosData, colorData);
 
     //sub in colorAttr data
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(colorData), colorData);
 
     glutPostRedisplay();
+}
+
+void mandelbrotQuad(vec2 positions[], GLfloat colors[]){
+    ofstream myfile;
+    myfile.open("data.txt");
+    __float128 x = xMax, y = yMax;
+    __float128 xStep = dx/width, yStep = dy/height;
+    int count = 0;
+
+    for(int i = 0; i < width; i++){
+        for(int j = 0; j < height; j++){
+            positions[count] = vec2(x, y);
+
+            int iterations = 0;
+            __float128 nextSquareAbs = 0;
+            __float128 nextSquareX = x, nextSquareY = y;
+            while(iterations < testCutoff && nextSquareAbs < 4.0){
+                __float128 bufferX = nextSquareX*nextSquareX - nextSquareY*nextSquareY + x;
+                nextSquareY = 2*nextSquareX*nextSquareY + y;
+                nextSquareX = bufferX;
+
+                nextSquareAbs = nextSquareX*nextSquareX + nextSquareY*nextSquareY;
+
+                iterations++;
+            }
+            myfile << " Count:"<< count << " X:" << positions[count].x << " Y:" << positions[count].y << " iterations:" << iterations << endl;
+
+            colors[count] = (iterations == testCutoff)?0.0:iterations/100.0;
+
+            y-=yStep;
+            count++;
+        }
+        y = yMax;
+        x-= xStep;
+    }
 }
 
