@@ -15,30 +15,33 @@
 
 using namespace std;
 
+int baseIterations = 100;
+int iterationInc = 100;
+
 int zoom = 0;
-int testCuttoff = 100;
+int testCutoff = baseIterations;
 
 int width = 750, height = 750;
 int numPoints = width*height;
 int topBarHeight = 20;
 
-//double xMax = -.6, xMin = -.9;
-//double yMax = .25, yMin = 0;
+//long double xMax = -.6, xMin = -.9;
+//long double yMax = .25, yMin = 0;
 
-double xMax = 1.0, xMin = -2.0;
-double yMax = 1.5, yMin = -1.5;
-double dx = xMax-xMin, dy = yMax-yMin;
+long double xMax = 1.0, xMin = -2.0;
+long double yMax = 1.5, yMin = -1.5;
+long double dx = xMax-xMin, dy = yMax-yMin;
 
-double scaleFactor = 2.0;
+long double scaleFactor = 4.0;
 
-double mx, my;
+long double mx, my;
 
 
 void init();
 void display();
 void mandelbrot(vec2 positions[], GLfloat colors[]);
 void scale(vec2 positions[]);
-void unScale(double & mx, double & my);
+void unScale(long double & mx, long double & my);
 void mouseCallback(int button, int state, int x, int y);
 void redisplay();
 
@@ -68,50 +71,44 @@ void init(){
     mandelbrot(posData, colorData);
     scale(posData);
 
-    cout << "2" << endl;
 
     GLuint program = InitShader("shader.glsl","fshader.glsl");  //initializes vertex + fragment shaders
-    cout << "2.5" << endl;
     glUseProgram(program);
 
-    cout << "3" << endl;
+
 
     GLuint vao;                                                 //creates vertex array object
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    cout << "4" << endl;
+
 
     GLuint buffer;                                              //create buffer to hold data
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
 
-    cout << "5" << endl;
+
 
     //allocate data
     glBufferData(GL_ARRAY_BUFFER, sizeof(posData)+sizeof(colorData), nullptr, GL_STATIC_DRAW);
 
-    cout << "6" << endl;
-
-    //sub in posAttr data
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(posData), posData);
-
-    cout << "7" << endl;
 
     //sub in colorAttr data
-    glBufferSubData(GL_ARRAY_BUFFER, sizeof(posData), sizeof(colorData), colorData);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(colorData), colorData);
 
-    cout << "8" << endl;
+    //sub in posAttr data
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(colorData), sizeof(posData), posData);
+
+
 
     GLuint posAttr = glGetAttribLocation(program, "vPosition");//getting address of vposition from shader to write vertex data
     glEnableVertexAttribArray(posAttr);
-    glVertexAttribPointer(posAttr, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+    glVertexAttribPointer(posAttr, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(sizeof(colorData)));
 
-    cout << "9" << endl;
 
     GLuint colorAttr = glGetAttribLocation(program, "vColor");//getting address of vcolor from shader to write vertex data
     glEnableVertexAttribArray(colorAttr);
-    glVertexAttribPointer(colorAttr, 1, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(sizeof(posData)));
+    glVertexAttribPointer(colorAttr, 1, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
     glClearColor(1.0, 1.0, 1.0, 1.0);                          //turns screen white
 }
@@ -126,8 +123,8 @@ void display(){
 void mandelbrot(vec2 positions[], GLfloat colors[]){
     ofstream myfile;
     myfile.open("data.txt");
-    double x = xMax, y = yMax;
-    double xStep = dx/width, yStep = dy/height;
+    long double x = xMax, y = yMax;
+    long double xStep = dx/width, yStep = dy/height;
     int count = 0;
 
     for(int i = 0; i < width; i++){
@@ -135,10 +132,10 @@ void mandelbrot(vec2 positions[], GLfloat colors[]){
             positions[count] = vec2(x, y);
 
             int iterations = 0;
-            double nextSquareAbs = 0;
-            double nextSquareX = x, nextSquareY = y;
-            while(iterations < testCuttoff && nextSquareAbs < 4.0){
-                double bufferX = nextSquareX*nextSquareX - nextSquareY*nextSquareY + x;
+            long double nextSquareAbs = 0;
+            long double nextSquareX = x, nextSquareY = y;
+            while(iterations < testCutoff && nextSquareAbs < 4.0){
+                long double bufferX = nextSquareX*nextSquareX - nextSquareY*nextSquareY + x;
                 nextSquareY = 2*nextSquareX*nextSquareY + y;
                 nextSquareX = bufferX;
 
@@ -148,7 +145,7 @@ void mandelbrot(vec2 positions[], GLfloat colors[]){
             }
             myfile << " Count:"<< count << " X:" << positions[count].x << " Y:" << positions[count].y << " iterations:" << iterations << endl;
 
-            colors[count] = (iterations == testCuttoff)?0.0:iterations/100.0;
+            colors[count] = (iterations == testCutoff)?0.0:iterations/100.0;
 
             y-=yStep;
             count++;
@@ -159,32 +156,35 @@ void mandelbrot(vec2 positions[], GLfloat colors[]){
 }
 
 void scale(vec2 positions[]){
+    ofstream myfile;
+    myfile.open("data2.txt");
     for(int i = 0; i < numPoints; i++){
         positions[i].x = -1.0+(2.0)*((positions[i].x-xMin)/dx);
         positions[i].y = -1.0+(2.0)*((positions[i].y-yMin)/dy);
+        myfile << " Count:"<< i << " X:" << positions[i].x << " Y:" << positions[i].y << endl;
     }
 }
 
-void unScale(double & mx, double & my){
+void unScale(long double & mx, long double & my){
     mx = xMin + dx * ((mx-(-1.0))/(2.0));
     my = yMin + dy * ((my-(-1.0))/(2.0));
 }
 
 
 void mouseCallback(int button, int state, int x, int y){
-    mx = (double) x / (width / 2) - 1.0;
-    my = (double) (height - y) / (height / 2) - 1.0;
+    mx = (long double) x / (width / 2) - 1.0;
+    my = (long double) (height - y) / (height / 2) - 1.0;
 
 
     if((button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) &&  state == GLUT_DOWN){
-        double mscalex = mx, mscaley = my;
+        long double mscalex = mx, mscaley = my;
         cout << " mscaley: " << mscaley << " mscalex: " << mscalex << endl;
 
         unScale(mscalex, mscaley);
 
         cout << " mscaley: " << mscaley << " mscalex: " << mscalex << endl;
 
-        double thisScale = scaleFactor;
+        long double thisScale = scaleFactor;
         if(button == GLUT_LEFT_BUTTON){
             printf("left click\n");
             thisScale = 1.0/scaleFactor;
@@ -203,30 +203,22 @@ void mouseCallback(int button, int state, int x, int y){
         yMin = mscaley-(dy/2.0)*thisScale;
         dy = yMax-yMin;
 
-        if(zoom>=0){
-            printf("wtf man");
-        }
+        testCutoff = baseIterations + iterationInc*zoom;
+        if(testCutoff <= 0) testCutoff = baseIterations;
 
-        testCuttoff = 100 + 100*zoom;
-        if(testCuttoff <= 0) testCuttoff = 100;
-
-        cout << " xMin: " << xMin << " xMax: " << xMax << " yMax: " << yMax << " yMin: " << yMin << " cutoff: " << testCuttoff << endl;
+        cout << " xMin: " << xMin << " xMax: " << xMax << " yMax: " << yMax << " yMin: " << yMin << " cutoff: " << testCutoff << endl;
 
         redisplay();
     }
 }
 
 void redisplay(){
-    vec2 posData[numPoints];
+    vec2 rawPosData[numPoints];
     GLfloat colorData[numPoints];
-    mandelbrot(posData, colorData);
-    scale(posData);
-
-    //sub in posAttr data
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(posData), posData);
+    mandelbrot(rawPosData, colorData);
 
     //sub in colorAttr data
-    glBufferSubData(GL_ARRAY_BUFFER, sizeof(posData), sizeof(colorData), colorData);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(colorData), colorData);
 
     glutPostRedisplay();
 }
